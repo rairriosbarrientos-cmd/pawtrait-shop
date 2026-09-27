@@ -19,7 +19,7 @@
 html, body, #root { margin: 0; padding: 0; }
 body { background: var(--cream); color: var(--ink); font-family: var(--sans); -webkit-font-smoothing: antialiased; line-height: 1.5; }
 img { max-width: 100%; display: block; }
-button { font: inherit; cursor: pointer; }
+button { font: inherit; color: inherit; cursor: pointer; }
 a { color: inherit; }
 
 .wrap { width: 100%; max-width: 1120px; margin: 0 auto; padding: 0 20px; }
