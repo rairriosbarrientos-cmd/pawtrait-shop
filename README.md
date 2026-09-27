@@ -1,6 +1,6 @@
 # Pawtrait — retratos de mascotas automáticos (EE.UU.)
 
-El cliente sube una foto → elige estilo → ve una vista previa con marca de agua (gratis) → paga con Stripe → Printful imprime, enmarca y envía. **Nadie tiene que hacer nada a mano.**
+El cliente sube una foto → elige estilo → ve una vista previa con marca de agua (gratis) → arma su carrito (cuadros, lienzos, playeras, sudaderas, tazas, bolsas, cobijas o descarga digital) → paga con Stripe → Printful fabrica y envía todo en un solo pedido. **Nadie tiene que hacer nada a mano.**
 
 Sin llaves, la tienda funciona en **modo demo** (retratos de muestra, sin cobro) para que puedas verla publicada desde el día uno.
 
@@ -28,20 +28,26 @@ La imagen en alta resolución solo se entrega con enlace firmado (a Printful y a
 | `STRIPE_SECRET_KEY` | Stripe → Developers → API keys (empieza con `sk_live_` o `sk_test_`). |
 | `STRIPE_WEBHOOK_SECRET` | Stripe → Developers → Webhooks → Add endpoint `https://TU-SITIO/api/stripe-webhook`, evento `checkout.session.completed`. Copia el "Signing secret" (`whsec_...`). |
 | `PRINTFUL_API_KEY` | Printful → Settings → API → token privado. |
-| `PRINTFUL_VARIANT_12X16`, `PRINTFUL_VARIANT_18X24` | Corre `PRINTFUL_API_KEY=... npm run printful:variants` y copia los IDs del marco negro. |
 | `PRINTFUL_AUTO_CONFIRM` | Opcional. `false` = los pedidos quedan en borrador en Printful para revisarlos antes de producir (recomendado las primeras semanas). |
+| `PRINTFUL_PRODUCT_<ID>` | Opcional, solo si el paso 3 marca un producto mal (ej. `PRINTFUL_PRODUCT_TOTE=367`). |
 
-3. Haz un pedido de prueba con la tarjeta de Stripe `4242 4242 4242 4242` usando llaves `sk_test_`.
+3. **Verifica Printful:** `PRINTFUL_API_KEY=... npm run printful:variants`. Revisa que cada producto (playera, taza, lienzo, bolsa, cobija…) apunte al artículo correcto y que todas las tallas/colores existan. Los IDs del catálogo son los de Printful que yo conozco; **la bolsa (84) y la cobija (423) son los menos seguros**, confírmalos aquí.
+4. Haz un pedido de prueba con la tarjeta de Stripe `4242 4242 4242 4242` usando llaves `sk_test_`.
 
-## Números (aprox.)
+## Productos y números (aprox., envío gratis incluido)
 
-| Producto | Precio | Costo Printful aprox. | Margen aprox. |
-| --- | --- | --- | --- |
-| Descarga digital | $29 | ~$0.05 de IA | ~$28 |
-| Enmarcado 12×16″ | $89 | ~$35–45 con envío | ~$40 |
-| Enmarcado 18×24″ | $129 | ~$55–70 con envío | ~$55 |
+| Producto | Precio | Costo Printful aprox. (con envío) |
+| --- | --- | --- |
+| Descarga digital | $29 | ~$0.05 de IA |
+| Cuadro enmarcado 12×16″ / 18×24″ | $89 / $129 | ~$40 / ~$65 |
+| Lienzo 12×16″ / 16×20″ / 18×24″ | $69 / $89 / $109 | ~$35 / ~$45 / ~$55 |
+| Playera | $34 | ~$17 |
+| Sudadera con capucha | $59 | ~$35 |
+| Taza 11 oz / 15 oz | $24 / $27 | ~$12 / ~$14 |
+| Bolsa | $29 | ~$18 |
+| Cobija 50×60″ | $79 | ~$45 |
 
-Menos la comisión de Stripe (~3%). Verifica los costos reales en tu cuenta de Printful antes de lanzar.
+Menos la comisión de Stripe (~3%). Son estimados: el script del paso 3 muestra el costo real de cada variante. Precios y opciones se cambian en `src/catalogo.js`.
 
 ## Antes de lanzar
 

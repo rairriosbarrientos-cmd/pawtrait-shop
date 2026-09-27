@@ -50,12 +50,71 @@ export const STYLES = [
   },
 ];
 
-// Prices in US cents. Printful variant IDs come from env vars (see README) so they can be verified per account.
-export const PRODUCTS = [
-  { id: 'digital', name: 'Digital Download', detail: 'High-resolution file, instant delivery', price: 2900, physical: false },
-  { id: 'framed-12x16', name: 'Framed Print 12×16″', detail: 'Museum-quality matte paper, black wood frame, ready to hang', price: 8900, physical: true, variantEnv: 'PRINTFUL_VARIANT_12X16' },
-  { id: 'framed-18x24', name: 'Framed Print 18×24″', detail: 'Large statement piece, black wood frame, ready to hang', price: 12900, physical: true, variantEnv: 'PRINTFUL_VARIANT_18X24' },
+// Prices in US cents, free US shipping included. Printful catalog product IDs can be overridden
+// per product with env PRINTFUL_PRODUCT_<ID> (run `npm run printful:variants` to verify them).
+// Variants are matched by size/color when the order is sent to Printful.
+export const CATEGORIES = [
+  { id: 'wall', name: 'Wall art' },
+  { id: 'apparel', name: 'Apparel' },
+  { id: 'home', name: 'Home & gifts' },
 ];
+
+export const PRODUCTS = [
+  { id: 'digital', category: 'wall', name: 'Digital Download', detail: 'High-resolution file, instant delivery', price: 2900, physical: false, mockup: 'frame' },
+  { id: 'framed', category: 'wall', name: 'Framed Print', detail: 'Museum-quality matte paper, black wood frame, ready to hang', physical: true, mockup: 'frame',
+    options: { size: ['12×16″', '18×24″'] }, prices: { '12×16″': 8900, '18×24″': 12900 }, fixed: { color: 'Black' },
+    printful: { productId: 2, placement: 'default' } },
+  { id: 'canvas', category: 'wall', name: 'Canvas', detail: 'Gallery-wrapped canvas on a wood frame', physical: true, mockup: 'canvas',
+    options: { size: ['12×16″', '16×20″', '18×24″'] }, prices: { '12×16″': 6900, '16×20″': 8900, '18×24″': 10900 },
+    printful: { productId: 3, placement: 'default' } },
+  { id: 'tee', category: 'apparel', name: 'T-Shirt', detail: 'Soft unisex Bella+Canvas tee', price: 3400, physical: true, mockup: 'tee',
+    options: { size: ['S', 'M', 'L', 'XL', '2XL'], color: ['White', 'Black', 'Natural'] },
+    printful: { productId: 71, placement: 'front' } },
+  { id: 'hoodie', category: 'apparel', name: 'Hoodie', detail: 'Cozy unisex Gildan heavy blend hoodie', price: 5900, physical: true, mockup: 'hoodie',
+    options: { size: ['S', 'M', 'L', 'XL', '2XL'], color: ['White', 'Black', 'Sport Grey'] },
+    printful: { productId: 146, placement: 'front' } },
+  { id: 'mug', category: 'home', name: 'Mug', detail: 'Glossy ceramic, dishwasher & microwave safe', physical: true, mockup: 'mug',
+    options: { size: ['11 oz', '15 oz'] }, prices: { '11 oz': 2400, '15 oz': 2700 },
+    printful: { productId: 19, placement: 'default' } },
+  { id: 'tote', category: 'home', name: 'Tote Bag', detail: 'Sturdy everyday cotton tote', price: 2900, physical: true, mockup: 'tote',
+    printful: { productId: 84, placement: 'front' } },
+  { id: 'blanket', category: 'home', name: 'Throw Blanket', detail: 'Ultra-soft fleece, 50×60″', price: 7900, physical: true, mockup: 'blanket',
+    printful: { productId: 423, placement: 'default' } },
+];
+
+export const MAX_ITEMS = 10;
+export const COLOR_SWATCH = { White: '#FFFFFF', Black: '#1E1B16', Natural: '#EFE6D2', 'Sport Grey': '#A9A9A7' };
+
+// First value of each option, so a product can be added in one tap.
+export function defaultOptions(product) {
+  return Object.fromEntries(Object.entries(product.options || {}).map(([k, v]) => [k, v[0]]));
+}
+export function priceFor(product, options = {}) {
+  return product.prices ? product.prices[options.size] ?? null : product.price;
+}
+export function fromPrice(product) {
+  return product.prices ? Math.min(...Object.values(product.prices)) : product.price;
+}
+// Validates a cart line coming from the browser; returns a clean line or null.
+export function validLine(line) {
+  const product = productById(line?.producto);
+  if (!product) return null;
+  const opciones = {};
+  for (const [k, valores] of Object.entries(product.options || {})) {
+    if (!valores.includes(line.opciones?.[k])) return null;
+    opciones[k] = line.opciones[k];
+  }
+  const qty = Number(line.qty);
+  if (!Number.isInteger(qty) || qty < 1 || qty > MAX_ITEMS) return null;
+  const price = priceFor(product, opciones);
+  if (!price) return null;
+  return { producto: product.id, opciones, qty: product.physical ? qty : 1, price };
+}
+export function lineLabel(line) {
+  const product = productById(line.producto);
+  const extra = Object.values(line.opciones || {}).join(' · ');
+  return `${product?.name}${extra ? ` (${extra})` : ''}`;
+}
 
 export const MAX_GENERATIONS_PER_DAY = 8;
 

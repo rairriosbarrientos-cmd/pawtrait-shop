@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { STYLES, PRODUCTS, SAMPLE_PHOTO, styleById, productById, usd } from './catalogo.js';
+import { STYLES, PRODUCTS, CATEGORIES, SAMPLE_PHOTO, COLOR_SWATCH, MAX_ITEMS, styleById, productById, usd, defaultOptions, priceFor, fromPrice, lineLabel } from './catalogo.js';
 
 const HERO_STYLE = STYLES[0];
 
@@ -82,17 +82,22 @@ function Tienda() {
 
       <section className="block alt" id="pricing">
         <div className="wrap">
-          <div className="section-head"><p className="eyebrow">Pricing</p><h2 className="display">Pick how you want it</h2><p className="muted">Preview is always free. You only pay when you love it.</p></div>
-          <div className="products">
-            {PRODUCTS.map((p) => (
-              <div key={p.id} className={`product ${p.id === 'framed-12x16' ? 'featured' : ''}`}>
-                <h3>{p.name}</h3>
-                <div className="price">{usd(p.price)}</div>
-                <p>{p.detail}{p.physical ? ' · Free US shipping' : ''}</p>
+          <div className="section-head"><p className="eyebrow">Shop</p><h2 className="display">Put them on everything</h2><p className="muted">Wall art, tees, hoodies, mugs and more — all made to order with your pet's portrait. Preview is always free. Free US shipping.</p></div>
+          {CATEGORIES.map((c) => (
+            <div key={c.id} style={{ marginBottom: 28 }}>
+              <h3 className="cat-title">{c.name}</h3>
+              <div className="shop-grid">
+                {PRODUCTS.filter((p) => p.category === c.id).map((p) => (
+                  <button key={p.id} className="shop-card" onClick={() => abrir()}>
+                    <Mockup tipo={p.mockup} img={HERO_STYLE.sample} color={p.options?.color?.[0]} />
+                    <b>{p.name}</b>
+                    <span className="muted">{p.prices ? 'from ' : ''}{usd(fromPrice(p))}</span>
+                  </button>
+                ))}
               </div>
-            ))}
-          </div>
-          <div style={{ textAlign: 'center', marginTop: 28 }}><button className="btn btn-primary" onClick={() => abrir()}>Start with a free preview</button></div>
+            </div>
+          ))}
+          <div style={{ textAlign: 'center', marginTop: 12 }}><button className="btn btn-primary" onClick={() => abrir()}>Start with a free preview</button></div>
         </div>
       </section>
 
@@ -134,6 +139,106 @@ function TarjetaEstilo({ estilo, sel, onClick }) {
   );
 }
 
+// Lightweight product mockups drawn in SVG/CSS with the portrait placed on them.
+function Mockup({ tipo, img, color = 'White', grande }) {
+  const tela = COLOR_SWATCH[color] || '#FFFFFF';
+  const oscuro = color === 'Black';
+  const clase = `mockup ${grande ? 'grande' : ''}`;
+  if (tipo === 'tee' || tipo === 'hoodie') {
+    return (
+      <div className={clase}>
+        <svg viewBox="0 0 200 200" aria-hidden>
+          {tipo === 'hoodie'
+            ? <path d="M70 22 Q100 8 130 22 L168 44 L188 92 L160 104 L156 190 L44 190 L40 104 L12 92 L32 44 Z M82 24 Q100 52 118 24" fill={tela} stroke={oscuro ? '#000' : '#D9CFBF'} strokeWidth="2" />
+            : <path d="M72 18 Q100 34 128 18 L172 40 L190 84 L160 96 L158 190 L42 190 L40 96 L10 84 L28 40 Z" fill={tela} stroke={oscuro ? '#000' : '#D9CFBF'} strokeWidth="2" />}
+        </svg>
+        <img src={img} alt="" className="en-prenda" style={{ top: tipo === 'hoodie' ? '34%' : '28%' }} />
+      </div>
+    );
+  }
+  if (tipo === 'mug') {
+    return (
+      <div className={clase}>
+        <div className="taza"><img src={img} alt="" /><i className="asa" /></div>
+      </div>
+    );
+  }
+  if (tipo === 'tote') {
+    return (
+      <div className={clase}>
+        <div className="bolsa"><i className="asas" /><img src={img} alt="" /></div>
+      </div>
+    );
+  }
+  if (tipo === 'blanket') {
+    return <div className={clase}><div className="cobija"><img src={img} alt="" /></div></div>;
+  }
+  if (tipo === 'canvas') {
+    return <div className={clase}><div className="lienzo"><img src={img} alt="" /></div></div>;
+  }
+  return <div className={clase}><div className="frame mini-frame"><img src={img} alt="" /></div></div>;
+}
+
+function SelectorProductos({ img, setCarrito }) {
+  const [categoria, setCategoria] = useState('wall');
+  const [elegido, setElegido] = useState('framed');
+  const producto = productById(elegido);
+  const [opciones, setOpciones] = useState(defaultOptions(producto));
+  const [qty, setQty] = useState(1);
+  const [agregado, setAgregado] = useState(false);
+  const precio = priceFor(producto, opciones);
+
+  function elegir(id) { const p = productById(id); setElegido(id); setOpciones(defaultOptions(p)); setQty(1); }
+  function agregar() {
+    setCarrito((c) => {
+      const clave = JSON.stringify([producto.id, opciones]);
+      const existente = c.find((l) => JSON.stringify([l.producto, l.opciones]) === clave);
+      if (existente) return c.map((l) => (l === existente ? { ...l, qty: producto.physical ? Math.min(MAX_ITEMS, l.qty + qty) : 1 } : l));
+      return [...c, { producto: producto.id, opciones, qty: producto.physical ? qty : 1 }];
+    });
+    setAgregado(true); setTimeout(() => setAgregado(false), 1400);
+  }
+
+  return (
+    <div>
+      <div className="cat-tabs">
+        {CATEGORIES.map((c) => <button key={c.id} className={categoria === c.id ? 'on' : ''} onClick={() => { setCategoria(c.id); elegir(PRODUCTS.find((p) => p.category === c.id).id); }}>{c.name}</button>)}
+      </div>
+      <div className="mini-grid">
+        {PRODUCTS.filter((p) => p.category === categoria).map((p) => (
+          <button key={p.id} className={`mini-prod ${elegido === p.id ? 'sel' : ''}`} onClick={() => elegir(p.id)}>
+            <Mockup tipo={p.mockup} img={img} color={elegido === p.id ? opciones.color : p.options?.color?.[0]} />
+            <b>{p.name}</b><span>{p.prices ? 'from ' : ''}{usd(fromPrice(p))}</span>
+          </button>
+        ))}
+      </div>
+      <div className="config">
+        <p className="muted" style={{ margin: '0 0 10px', fontSize: 14 }}>{producto.detail}</p>
+        {producto.options?.size && (
+          <div className="opt-row"><span>Size</span>
+            <div className="opt-chips">{producto.options.size.map((v) => <button key={v} className={opciones.size === v ? 'on' : ''} onClick={() => setOpciones({ ...opciones, size: v })}>{v}</button>)}</div>
+          </div>
+        )}
+        {producto.options?.color && (
+          <div className="opt-row"><span>Color</span>
+            <div className="opt-chips">{producto.options.color.map((v) => (
+              <button key={v} className={`swatch ${opciones.color === v ? 'on' : ''}`} onClick={() => setOpciones({ ...opciones, color: v })} title={v} aria-label={v}>
+                <i style={{ background: COLOR_SWATCH[v] }} />{v}
+              </button>))}
+            </div>
+          </div>
+        )}
+        {producto.physical && (
+          <div className="opt-row"><span>Qty</span>
+            <div className="qty"><button onClick={() => setQty(Math.max(1, qty - 1))} aria-label="Less">−</button><b>{qty}</b><button onClick={() => setQty(Math.min(MAX_ITEMS, qty + 1))} aria-label="More">+</button></div>
+          </div>
+        )}
+        <button className="btn btn-dark btn-block" onClick={agregar}>{agregado ? 'Added ✓' : `Add ${producto.name} · ${usd(precio * (producto.physical ? qty : 1))}`}</button>
+      </div>
+    </div>
+  );
+}
+
 // Resize in the browser before uploading: faster on mobile data and well under the function limit.
 async function prepararFoto(archivo) {
   const url = URL.createObjectURL(archivo);
@@ -160,7 +265,7 @@ function Creador({ inicial, onCerrar }) {
   const [nombre, setNombre] = useState('');
   const [error, setError] = useState(null);
   const [trabajo, setTrabajo] = useState(inicial.retrato ? { id: inicial.retrato } : null); // { id, preview, demo }
-  const [producto, setProducto] = useState('framed-12x16');
+  const [carrito, setCarrito] = useState([]);
   const [mensaje, setMensaje] = useState(0);
   const [arrastrando, setArrastrando] = useState(false);
   const [pagando, setPagando] = useState(false);
@@ -206,7 +311,7 @@ function Creador({ inicial, onCerrar }) {
   async function pagar() {
     setPagando(true);
     setError(null);
-    const r = await fetch('/api/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: trabajo.id, producto }) })
+    const r = await fetch('/api/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: trabajo.id, items: carrito }) })
       .then((x) => x.json()).catch(() => ({ error: 'No connection. Please try again.' }));
     if (r.url) { window.location.href = r.url; return; }
     setError(r.error || 'Please try again.');
@@ -282,20 +387,28 @@ function Creador({ inicial, onCerrar }) {
             <p className="eyebrow">Step 4 of 4</p>
             <h2>{nombre ? `Meet ${nombre}, the masterpiece` : 'Your masterpiece is ready'}</h2>
             <div className="result">
-              <div className="frame"><img src={trabajo.preview} alt="Your pet's portrait preview" /></div>
               <div>
-                <div className="options">
-                  {PRODUCTS.map((p) => (
-                    <button key={p.id} className={`option ${producto === p.id ? 'sel' : ''}`} onClick={() => setProducto(p.id)}>
-                      <span><b>{p.name}</b><small>{p.detail}</small></span>
-                      <span className="p">{usd(p.price)}</span>
-                    </button>
-                  ))}
-                </div>
-                <button className="btn btn-primary btn-block" style={{ marginTop: 14 }} disabled={pagando} onClick={pagar}>
-                  {pagando ? 'Opening secure checkout…' : `Get it for ${usd(productById(producto).price)} →`}
+                <div className="frame"><img src={trabajo.preview} alt="Your pet's portrait preview" /></div>
+                <p className="muted" style={{ fontSize: 12, textAlign: 'center', margin: '8px 0 0' }}>Preview is watermarked. Your order is printed without it.</p>
+              </div>
+              <div>
+                <SelectorProductos img={trabajo.preview} setCarrito={setCarrito} />
+                {carrito.length > 0 && (
+                  <div className="cart">
+                    <p className="eyebrow" style={{ marginBottom: 6 }}>Your order</p>
+                    {carrito.map((l, i) => (
+                      <div key={i} className="cart-line">
+                        <span>{l.qty > 1 ? `${l.qty}× ` : ''}{lineLabel(l)}</span>
+                        <span><b>{usd(priceFor(productById(l.producto), l.opciones) * l.qty)}</b> <button className="quitar" aria-label="Remove" onClick={() => setCarrito(carrito.filter((_, j) => j !== i))}>×</button></span>
+                      </div>
+                    ))}
+                    <div className="cart-line total"><span>Total · free US shipping</span><b>{usd(carrito.reduce((t, l) => t + priceFor(productById(l.producto), l.opciones) * l.qty, 0))}</b></div>
+                  </div>
+                )}
+                <button className="btn btn-primary btn-block" style={{ marginTop: 14 }} disabled={pagando || carrito.length === 0} onClick={pagar}>
+                  {pagando ? 'Opening secure checkout…' : carrito.length ? `Checkout · ${usd(carrito.reduce((t, l) => t + priceFor(productById(l.producto), l.opciones) * l.qty, 0))} →` : 'Add something to your order'}
                 </button>
-                <p className="muted" style={{ fontSize: 13, textAlign: 'center', margin: '10px 0 0' }}>Secure checkout · {productById(producto).physical ? 'Free US shipping' : 'Instant download'}</p>
+                <p className="muted" style={{ fontSize: 13, textAlign: 'center', margin: '10px 0 0' }}>Secure checkout by Stripe · Made to order</p>
                 {foto && <button className="btn btn-ghost btn-block" style={{ marginTop: 10 }} onClick={() => { setTrabajo(null); setPaso(2); }}>Try another style (free)</button>}
                 {trabajo.demo && <p className="demo-note">Demo mode: this is a sample portrait. Connect FAL_KEY to paint real photos.</p>}
               </div>
@@ -313,12 +426,8 @@ function Gracias() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (q.get('demo')) {
-      const p = productById(q.get('producto'));
-      setPedido({ demo: true, producto: p?.name, fisico: p?.physical });
-      return;
-    }
-    fetch(`/api/pedido?session_id=${encodeURIComponent(q.get('session_id') || '')}`)
+    const url = q.get('demo') ? `/api/pedido?carrito=${encodeURIComponent(q.get('carrito') || '')}` : `/api/pedido?session_id=${encodeURIComponent(q.get('session_id') || '')}`;
+    fetch(url)
       .then(async (r) => (r.ok ? setPedido(await r.json()) : setError('We could not find this order. If you were charged, email us and we will sort it out right away.')))
       .catch(() => setError('No connection. Refresh the page in a moment.'));
   }, []);
@@ -334,10 +443,11 @@ function Gracias() {
               <div style={{ fontSize: 52 }}>🎉</div>
               <h1 className="display" style={{ fontSize: 40, margin: '8px 0' }}>Thank you!</h1>
               {pedido.demo && <p className="demo-note">Demo mode — no payment was taken. Connect Stripe to accept real orders.</p>}
-              <p className="muted">{pedido.producto}{pedido.estilo ? ` · ${pedido.estilo}` : ''}{pedido.nombre ? ` · ${pedido.nombre}` : ''}</p>
+              <p className="muted">{pedido.estilo}{pedido.nombre ? ` · ${pedido.nombre}` : ''}</p>
+              <ul className="gracias-items">{pedido.items?.map((it, i) => <li key={i}>{it.qty > 1 ? `${it.qty}× ` : ''}{it.label}</li>)}</ul>
               {pedido.preview && <div className="frame" style={{ maxWidth: 280, margin: '18px auto' }}><img src={pedido.preview} alt="Your portrait" /></div>}
               {pedido.descarga && <a className="btn btn-primary" href={pedido.descarga}>Download your portrait</a>}
-              {pedido.fisico && <p>Your framed print is being made. We'll email tracking to <b>{pedido.email || 'you'}</b> as soon as it ships (usually 5–10 business days).</p>}
+              {pedido.fisico && <p>Your order is being made. We'll email tracking to <b>{pedido.email || 'you'}</b> as soon as it ships (usually 5–10 business days).</p>}
               <p className="muted" style={{ fontSize: 14, marginTop: 20 }}>Loved it? Share it and tag us — it helps a small business a lot.</p>
               <a className="btn btn-ghost" href="/">Make another portrait</a>
             </>

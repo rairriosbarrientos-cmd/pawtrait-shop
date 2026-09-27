@@ -1,34 +1,41 @@
 import Stripe from 'stripe';
-import { store, env, json, idValido, origen } from '../lib/comun.mts';
-import { productById, styleById } from '../../src/catalogo.js';
+import { store, env, json, idValido, origen, nuevoId } from '../lib/comun.mts';
+import { productById, styleById, validLine, lineLabel } from '../../src/catalogo.js';
 
-// POST { id, producto } -> { url } (Stripe Checkout). Without STRIPE_SECRET_KEY: demo thank-you page.
+// POST { id, items: [{ producto, opciones, qty }] } -> { url } (Stripe Checkout).
+// The cart is stored server-side (prices come from the catalog, never from the browser).
 export default async (req: Request) => {
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
-  const { id, producto: productoId } = await req.json().catch(() => ({}));
-  const producto = productById(productoId);
-  if (!idValido(id) || !producto) return json({ error: 'Invalid order' }, 400);
-  const trabajo: any = await store().get(`trabajos/${id}`, { type: 'json' });
+  const { id, items } = await req.json().catch(() => ({}));
+  if (!idValido(id) || !Array.isArray(items) || items.length === 0 || items.length > 10) return json({ error: 'Invalid order' }, 400);
+  const lineas = items.map(validLine);
+  if (lineas.some((l) => !l)) return json({ error: 'One of the items is not available. Please review your order.' }, 400);
+
+  const s = store();
+  const trabajo: any = await s.get(`trabajos/${id}`, { type: 'json' });
   if (!trabajo || trabajo.estado !== 'listo') return json({ error: 'Your portrait is not ready yet' }, 409);
 
+  const carrito = nuevoId();
+  await s.setJSON(`carritos/${carrito}`, { id, lineas, creado: Date.now() });
+  const fisico = lineas.some((l) => productById(l.producto)?.physical);
+
   const clave = env('STRIPE_SECRET_KEY');
-  if (!clave) return json({ url: `/gracias?demo=1&id=${id}&producto=${producto.id}` });
+  if (!clave) return json({ url: `/gracias?demo=1&carrito=${carrito}` });
 
   const base = origen(req);
   const estilo = styleById(trabajo.estilo);
   const imagen = trabajo.previewUrl.startsWith('http') ? trabajo.previewUrl : `${base}${trabajo.previewUrl}`;
-  const stripe = new Stripe(clave);
-  const sesion = await stripe.checkout.sessions.create({
+  const sesion = await new Stripe(clave).checkout.sessions.create({
     mode: 'payment',
-    line_items: [{
-      quantity: 1,
+    line_items: lineas.map((l) => ({
+      quantity: l.qty,
       price_data: {
         currency: 'usd',
-        unit_amount: producto.price,
-        product_data: { name: `${producto.name} — ${estilo?.name}${trabajo.nombre ? ` of ${trabajo.nombre}` : ''}`, description: producto.detail, images: [imagen] },
+        unit_amount: l.price,
+        product_data: { name: `${lineLabel(l)} — ${estilo?.name}${trabajo.nombre ? ` of ${trabajo.nombre}` : ''}`, description: productById(l.producto)?.detail, images: [imagen] },
       },
-    }],
-    ...(producto.physical ? {
+    })),
+    ...(fisico ? {
       shipping_address_collection: { allowed_countries: ['US'] },
       shipping_options: [{
         shipping_rate_data: {
@@ -38,7 +45,7 @@ export default async (req: Request) => {
       }],
     } : {}),
     allow_promotion_codes: true,
-    metadata: { id, producto: producto.id },
+    metadata: { id, carrito },
     success_url: `${base}/gracias?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${base}/?retrato=${id}`,
   });
