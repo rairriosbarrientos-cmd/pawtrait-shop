@@ -1,7 +1,22 @@
 // Shared catalog: used by the storefront and by the Netlify functions.
+import MUESTRAS_LOCALES from './muestras.local.js';
+
 const CDN = 'https://d8j0ntlcm91z4.cloudfront.net/user_3CkFWXycqPoKkwm4fwcfCrhWKBI';
 
-export const SAMPLE_PHOTO = `${CDN}/hf_20260927_112511_d9cc9e8d-c792-4ec7-bc7a-09872dd3827d.png`;
+// Sample images. On deploy, scripts/muestras.mjs downloads them, compresses them to WebP and serves them
+// from /muestras (see muestras.local.js). If that download fails, the CDN URLs below are used.
+export const MUESTRAS_REMOTAS = {
+  photo: `${CDN}/hf_20260927_112511_d9cc9e8d-c792-4ec7-bc7a-09872dd3827d.png`,
+  royal: `${CDN}/hf_20260927_112546_0cf17407-f2b6-4a6a-9fd2-032a6e3dbca7.png`,
+  astronaut: `${CDN}/hf_20260927_112546_2b272efa-609f-4b69-915f-63de53bcbdaa.png`,
+  watercolor: `${CDN}/hf_20260927_112546_3c97077d-e2b7-481e-998e-e1d2e445549e.png`,
+  general: `${CDN}/hf_20260927_174514_0438c047-d0ec-434a-92c0-670af4a4dec3.png`,
+  pop: `${CDN}/hf_20260927_174514_5013cfd4-4e45-4698-beef-1a076f1e6c00.png`,
+  minimal: `${CDN}/hf_20260927_174513_3f60d661-6b49-4006-995c-c4381eaa428f.png`,
+};
+const muestra = (id) => MUESTRAS_LOCALES[id] || MUESTRAS_REMOTAS[id];
+
+export const SAMPLE_PHOTO = muestra('photo');
 
 const KEEP = 'Keep this exact pet recognizable: same face, eye color, fur color, markings and ear shape.';
 
@@ -10,42 +25,42 @@ export const STYLES = [
     id: 'royal',
     name: 'The Royal',
     tagline: 'Renaissance oil portrait fit for a king',
-    sample: `${CDN}/hf_20260927_112546_0cf17407-f2b6-4a6a-9fd2-032a6e3dbca7.png`,
+    sample: muestra('royal'),
     prompt: `Turn this pet into a classical Renaissance royal oil portrait. ${KEEP} Wearing an ornate red velvet royal cape with ermine trim, a gold medallion chain and a small jeweled crown, seated on a tufted velvet cushion, dark moody museum background, Rembrandt lighting, visible oil brushstrokes, fine art masterpiece.`,
   },
   {
     id: 'astronaut',
     name: 'The Astronaut',
     tagline: 'One small step for dogkind',
-    sample: `${CDN}/hf_20260927_112546_2b272efa-609f-4b69-915f-63de53bcbdaa.png`,
+    sample: muestra('astronaut'),
     prompt: `Turn this pet into a heroic astronaut portrait. ${KEEP} Wearing a detailed white space suit with mission patches, helmet visor open, Earth and stars glowing behind, cinematic rim lighting, highly detailed digital painting, poster quality.`,
   },
   {
     id: 'watercolor',
     name: 'Watercolor',
     tagline: 'Soft, timeless, gallery-ready',
-    sample: `${CDN}/hf_20260927_112546_3c97077d-e2b7-481e-998e-e1d2e445549e.png`,
+    sample: muestra('watercolor'),
     prompt: `Turn this pet into a soft watercolor portrait. ${KEEP} Loose expressive watercolor washes, delicate ink outlines, warm pastel palette, white paper background with gentle paint splashes, elegant minimalist art print.`,
   },
   {
     id: 'general',
     name: 'The General',
     tagline: 'Decorated officer, 19th-century style',
-    sample: `${CDN}/hf_20260927_174514_0438c047-d0ec-434a-92c0-670af4a4dec3.png`,
+    sample: muestra('general'),
     prompt: `Turn this pet into a 19th-century military officer oil portrait. ${KEEP} Wearing a navy blue military jacket with gold epaulettes, medals and a sash, standing proudly, painted landscape background, classical oil painting, museum quality.`,
   },
   {
     id: 'pop',
     name: 'Pop Art',
     tagline: 'Bold colors, gallery-wall energy',
-    sample: `${CDN}/hf_20260927_174514_5013cfd4-4e45-4698-beef-1a076f1e6c00.png`,
+    sample: muestra('pop'),
     prompt: `Turn this pet into a bold pop art portrait. ${KEEP} Vibrant flat colors, halftone dots, thick black outlines, bright solid background, 1960s pop art style, poster print.`,
   },
   {
     id: 'minimal',
     name: 'Line Art',
     tagline: 'Clean single-line illustration',
-    sample: `${CDN}/hf_20260927_174513_3f60d661-6b49-4006-995c-c4381eaa428f.png`,
+    sample: muestra('minimal'),
     prompt: `Turn this pet into an elegant minimalist line art illustration. ${KEEP} Clean continuous black ink lines, a few soft beige accent shapes, lots of white space, modern Scandinavian art print.`,
   },
 ];

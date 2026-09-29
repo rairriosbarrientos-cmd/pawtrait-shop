@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "node scripts/muestras.mjs && vite build",
     "preview": "vite preview",
     "test": "node --test tests/*.test.js",
     "printful:variants": "node scripts/printful-variants.mjs"
